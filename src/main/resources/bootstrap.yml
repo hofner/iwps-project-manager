@@ -1,0 +1,22 @@
+spring.application:
+    name: project_management
+
+spring.cloud.vault:
+    enabled: false
+---
+
+spring:
+
+  profiles: "clustered"
+
+spring.cloud.vault:
+    enabled: true
+    host: 10.100.10.66
+    port: 8200
+    scheme: https
+    authentication: CERT
+    ssl:
+        trust-store: file:/vault/keystore.jks
+        trust-store-password: changeit
+        key-store: file:/vault/keystore.jks
+        key-store-password: changeit

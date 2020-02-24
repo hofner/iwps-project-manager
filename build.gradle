@@ -1,0 +1,168 @@
+buildscript {
+    repositories {
+        mavenLocal()
+        mavenCentral()
+        jcenter()
+        maven { url "http://repo.spring.io/release" }
+        maven { url "https://plugins.gradle.org/m2/"}
+    }
+    dependencies{
+        classpath("org.springframework.boot:spring-boot-gradle-plugin:1.4.3.RELEASE")
+        classpath("org.sonarqube.gradle:gradle-sonarqube-plugin:1.1")
+    }
+}
+
+plugins {
+    id "com.jfrog.artifactory" version "4.4.8"
+}
+
+apply plugin: 'java'
+apply plugin: 'eclipse'
+apply plugin: 'org.springframework.boot'
+apply plugin: 'build-dashboard'
+apply plugin: 'project-report'
+apply plugin: 'maven'
+apply plugin: 'maven-publish'
+apply plugin: 'org.sonarqube'
+apply plugin: 'jacoco'
+
+group = 'com.ericsson.internal.dtra'
+version =  '1.0.0'
+archivesBaseName = 'project-management'
+
+jar {
+    manifest {
+        attributes 'Main-Class': 'com.ericsson.internal.dtra.projectmanagement.ProjectManagement'
+    }
+}
+
+sourceCompatibility = 1.8
+targetCompatibility = 1.8
+
+repositories{
+    mavenLocal()
+    maven { url "http://repo.spring.io/release" }
+    //maven { url "https://arm.mo.ca.am.ericsson.se/artifactory/proj-csdp-release" }
+    maven { url "https://arm.epk.ericsson.se/artifactory/proj-dtra-release" }
+    maven { url "http://oss.jfrog.org/artifactory/oss-release-local" }
+}
+
+dependencies {
+    // Spring boot version to be used for starters
+    ext.springBootVersion="1.4.3.RELEASE"
+
+    // Spring boot starters
+    compile("org.springframework.boot:spring-boot-starter-actuator:"+springBootVersion)
+    compile("org.springframework.boot:spring-boot-starter-data-jpa:"+springBootVersion)
+    compile("org.springframework.boot:spring-boot-starter-web:"+springBootVersion)
+    // https://mvnrepository.com/artifact/org.testng/testng
+	compile("org.testng:testng:7.1.0")
+	// https://mvnrepository.com/artifact/org.mockito/mockito-all
+	compile("org.mockito:mockito-all:1.10.19")	
+    
+
+    // Swagger documentation
+    compile("io.springfox:springfox-swagger2:2.6.1")
+
+    // Database related
+    compile("org.flywaydb:flyway-core:4.0.3")
+    compile("org.postgresql:postgresql:9.4.1212")
+    compile("com.querydsl:querydsl-jpa:4.1.4")
+    compile("com.querydsl:querydsl-core:4.1.4")
+    // compile("com.querydsl:querydsl-apt:4.1.4:jpa") //for regeneration of querydsl
+    
+
+    // Spring Cloud Vault dependency, downloaded for arm (milestone version)
+    compile("org.springframework.cloud:spring-cloud-vault-starter-config:1.0.0.M1")
+
+    // Utilities
+    compile("org.springframework.boot:spring-boot-devtools")
+    compile("de.danielbechler:java-object-diff:0.94")
+
+    // Testing related
+    
+    testCompile("org.springframework.boot:spring-boot-starter-test") {
+        exclude group: 'junit', module: 'junit'
+    }
+}
+
+tasks.withType(Test).all {
+    // set heap size for the test JVM(s)
+    minHeapSize = "128m"
+    maxHeapSize = "512m"
+
+    // listen to events in the test execution lifecycle
+    beforeTest { descriptor ->
+        logger.lifecycle("Running test: " + descriptor)
+    }
+}
+
+test {
+    useTestNG {
+        includeGroups 'unit'
+        useDefaultListeners = true
+    }
+    jacoco {
+        destinationFile = file("$buildDir/jacoco/jacocoTest.exec")
+    }
+}
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            from components.java
+        }
+    }
+}
+
+artifactory {
+    contextUrl = "${artifactory_contextUrl}"
+    publish {
+        repository {
+            repoKey = 'proj-dtra-release-local'
+            username = "${artifactory_user}"
+            password = "${artifactory_password}"
+        }
+        defaults {
+            publications ('mavenJava')
+        }
+    }
+    resolve {
+        repository {
+            repoKey = 'proj-dtra-release-local'
+            username = "${artifactory_user}"
+            password = "${artifactory_password}"
+            maven = true
+        }
+        repository {
+            repoKey = 'proj-dtra-dev-local'
+            username = "${artifactory_user}"
+            password = "${artifactory_password}"
+            maven = true
+        }
+    }
+}
+
+sonarqube {
+    properties {
+        property "sonar.host.url", "https://sonarqube.lmera.ericsson.se"
+        property "sonar.jacoco.reportPath", "$buildDir/jacoco/jacocoTest.exec"
+        property "sonar.projectName", "Project Management"
+        property "sonar.scm.url", "scm:git:ssh://gerrit.ericsson.se:29418/dtraphoenix/project-management"
+        property "sonar.login", "9bdc2497fbfd96db3ebbdc4eaaedf26aa9b535ca"
+
+        property "sonar.exclusions",
+        "**.py,"+
+        "**/*Application.java,"+
+        "**Exception.java,"+
+        "src/main/java/com/ericsson/internal/dtra/projectmanagement/domain/entity**"
+    }
+}
+
+//Validate Javadoc
+//TODO enable this when using gradle 3.4.1 and greater
+//compileTestJava.dependsOn 'javadoc'
+
+jar {
+    from sourceSets.main.allSource
+}

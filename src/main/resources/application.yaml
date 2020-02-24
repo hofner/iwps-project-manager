@@ -1,0 +1,74 @@
+
+################################ WARNING #####################################
+# This file is the application properties source for deploying in the
+# kubernetes environment and should not be used for LOCAL DEVELOPMENT!
+# Instead, create a file called "application.properties" in the root
+# project folder and add the needed properties to test in your local machine.
+# Be aware that the application.properties will be ignored by git
+# whenever you change it so you can do whatever changes pleases you.
+###############################################################################
+# Change this file only for new properties that goes to the cluster environment
+###############################################################################
+
+server:
+  port: 8080
+  context-path: /project_management
+
+database:
+  ip: 172.29.238.82
+
+logging:
+  level.: "INFO"
+
+authorization:
+  ip: 172.29.238.78
+  url: "http://${authorization.ip}/authorization"
+  endpoint: "${authorization.url}/oauth/check_token"
+
+spring:
+  datasource:
+    url: jdbc:postgresql://${database.ip}/dtra_project
+  jpa:
+    hibernate.ddl-auto: validate
+
+spd_gateway:
+  ip: 172.29.238.78
+  url: http://${spd_gateway.ip}/spd_gateway
+
+cost_model_project:
+  ip: 172.29.238.78
+  url: http://${cost_model_project.ip}/cost_model_project
+
+cost_model_purchase_order:
+  ip: 172.29.238.78
+  url: http://${cost_model_purchase_order.ip}/cost_model_purchase_order
+
+cost_model_service_order:
+  ip: 172.29.238.78
+  url: http://${cost_model_service_order.ip}/cost_model_service_order
+
+flyway:
+  url: ${spring.datasource.url}
+  locations: db/sql
+---
+
+spring:
+  profiles: "clustered"
+
+database:
+  ip: 10.100.20.5
+
+authorization:
+  ip: 10.100.20.2
+
+spd_gateway:
+  ip: 10.100.20.19
+
+cost_model_project:
+  ip: 10.100.20.14
+
+cost_model_purchase_order:
+  ip: 10.100.20.11
+
+cost_model_service_order:
+  ip: 10.100.20.13

@@ -1,0 +1,17 @@
+build/
+bin/
+.gradle
+.project
+.settings
+*.log*
+.classpath
+gradle-app.setting
+test-output/
+*.orig
+*~
+.idea
+*.iml
+*.ipr
+*.iws
+application.properties
+.pydevproject
